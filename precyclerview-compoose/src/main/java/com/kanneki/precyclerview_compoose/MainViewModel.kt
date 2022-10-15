@@ -63,18 +63,7 @@ class MainViewModel : ViewModel() {
      * @param index 選中項目
      */
     fun setTabSelectIndex(index: Int) {
-        state = state.copy(tabIndex = index)
-    }
-
-    /**
-     * LazyColum對應tabs位置判斷
-     * (此function可以在優化)
-     *
-     * @param position LazyColum first位置
-     */
-    fun setTabSelectIndexByLazy(position: Int) {
-        (position / 11).also {
-            setTabSelectIndex(it)
-        }
+        if (index != state.tabIndex)
+            state = state.copy(tabIndex = index)
     }
 }

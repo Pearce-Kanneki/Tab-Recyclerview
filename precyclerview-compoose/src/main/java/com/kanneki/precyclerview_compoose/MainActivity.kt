@@ -1,7 +1,6 @@
 package com.kanneki.precyclerview_compoose
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -13,17 +12,18 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelStore
-import androidx.lifecycle.lifecycleScope
 import com.kanneki.precyclerview_compoose.compose.ItemCell
 import com.kanneki.precyclerview_compoose.compose.TextTabs
 import com.kanneki.precyclerview_compoose.data.DemoDataType
 import com.kanneki.precyclerview_compoose.ui.theme.PositionRecyclerviewTheme
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
 
@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
 
             val state = viewModel.state
             val listState = rememberLazyGridState()
-            val coroutineScope = rememberCoroutineScope()
+            val scrollIndex = remember { mutableStateOf(0) }
 
             PositionRecyclerviewTheme {
                 Surface(
@@ -63,12 +63,7 @@ class MainActivity : ComponentActivity() {
                                 viewModel.setTabSelectIndex(it)
                             },
                             clickEvent = {
-                                coroutineScope.launch {
-                                    // 無動畫
-//                                listState.scrollToItem(index = it)
-                                    // 有動畫
-                                    listState.animateScrollToItem(index = it)
-                                }
+                                scrollIndex.value = it
                             }
                         )
 
@@ -92,8 +87,20 @@ class MainActivity : ComponentActivity() {
                         }
 
                         //TODO 應該可以在優化
-                        LaunchedEffect(listState.firstVisibleItemIndex) {
-                            viewModel.setTabSelectIndexByLazy(listState.firstVisibleItemIndex)
+                        LaunchedEffect(listState) {
+                            snapshotFlow { listState.firstVisibleItemIndex }
+                                .map { it / 11 }
+                                .distinctUntilChanged()
+                                .collectLatest {
+                                    viewModel.setTabSelectIndex(it)
+                                }
+                        }
+
+                        LaunchedEffect(scrollIndex.value) {
+                            // 無動畫
+//                                listState.scrollToItem(index = it)
+                            // 有動畫
+                            listState.animateScrollToItem(index = scrollIndex.value)
                         }
                     }
                 }
